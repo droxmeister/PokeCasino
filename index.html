@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Game Corner Slots — Seed & Event</title>
+<style>
+  :root{
+    --bg:#071029; --panel:#0b1330; --accent:#ffcc00; --muted:#9fb0d0; --text:#eaf3ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;min-height:100vh;font-family:Inter,Segoe UI,Roboto,Arial;
+    background:linear-gradient(180deg,var(--bg),#021026);color:var(--text);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .wrap{width:100%;max-width:1000px;display:grid;grid-template-columns:1fr 340px;gap:18px}
+  .machine{background:rgba(255,255,255,0.02);padding:18px;border-radius:10px}
+  .header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .logo{font-weight:900;color:var(--accent);font-size:20px}
+  .slot-frame{display:flex;gap:14px;padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(0,0,0,0.18),transparent)}
+  .reel{width:140px;height:420px;border-radius:8px;overflow:hidden;position:relative;background:rgba(0,0,0,0.12);border:4px solid rgba(0,0,0,0.6);display:flex;justify-content:center}
+  .viewport{position:relative;width:100%;height:100%}
+  .strip{position:absolute;left:20%;top:0;display:flex;flex-direction:column;will-change:transform;transition: transform 1s cubic-bezier(.12,.8,.1,1)}
+  .symbol{height:140px;line-height:140px;display:flex;align-items:center;justify-content:center;font-size:58px;font-weight:700;text-shadow:0 3px 0 rgba(0,0,0,0.6);user-select:none;}
+  .center-line{position:absolute;left:0;right:0;top:140px;height:140px;border-top:2px dashed rgba(255,255,255,0.06);border-bottom:2px dashed rgba(255,255,255,0.06);pointer-events:none}
+  .controls{display:flex;gap:10px;align-items:center;margin-top:12px}
+  input[type=text], input[type=number]{padding:8px;border-radius:8px;border:0;background:#061224;color:var(--text)}
+  button{padding:10px 14px;border-radius:8px;border:0;background:linear-gradient(180deg,#ff6fb3,#d24a90);color:white;font-weight:800;cursor:pointer}
+  button.secondary{background:linear-gradient(180deg,#4cc0ff,#2aa6ea)}
+  .panel{padding:12px;border-radius:8px;background:rgba(0,0,0,0.16);margin-bottom:12px}
+  .big{font-weight:800;font-size:28px;color:var(--accent);text-align:center}
+  .muted{color:var(--muted);font-size:13px}
+  .log{height:160px;overflow:auto;font-size:13px;color:var(--muted);padding:8px;border-radius:8px;background:rgba(255,255,255,0.02)}
+  @media (max-width:920px){.wrap{grid-template-columns:1fr}.reel{width:120px;height:360px}.symbol{font-size:46px;height:120px}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="machine" role="application" aria-label="Slots">
+      <div class="header">
+        <div class="logo">GAME CORNER</div>
+        <div class="muted">Seed Events • DUST</div>
+      </div>
+
+      <div class="slot-frame" id="slotFrame">
+        <div class="reel" data-index="0">
+          <div class="viewport"><div class="strip" id="strip-0"></div><div class="center-line"></div></div>
+        </div>
+        <div class="reel" data-index="1">
+          <div class="viewport"><div class="strip" id="strip-1"></div><div class="center-line"></div></div>
+        </div>
+        <div class="reel" data-index="2">
+          <div class="viewport"><div class="strip" id="strip-2"></div><div class="center-line"></div></div>
+        </div>
+      </div>
+
+      <div class="controls" style="margin-top:14px">
+        <button id="spinBtn">SPIN</button>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <label class="muted">Einsatz</label>
+          <input id="bet" type="number" value="10" min="1" max="1000">
+        </div>
+      </div>
+
+      <div class="controls" style="margin-top:10px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="seedInput" type="text" placeholder="Seed">
+          <button class="secondary" id="applySeedBtn">Seed setzen</button>
+          <button id="clearSeedBtn">Seed löschen</button>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+          <div class="panel" style="width:140px">
+            <div class="muted">Guthaben</div><div class="big" id="credits">500</div>
+          </div>
+          <div class="panel" style="width:120px">
+            <div class="muted">Letzter</div><div class="big" id="lastWin">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="panel">
+        <div style="font-weight:800">Status</div>
+        <div id="statusText" style="margin-top:8px" class="muted">Kein Seed gesetzt.</div>
+      </div>
+
+      <div class="panel">
+        <div style="font-weight:800;margin-bottom:6px">Spiel-Log</div>
+        <div class="log" id="log"></div>
+      </div>
+
+      <div class="panel">
+        <div style="font-weight:800;margin-bottom:6px">Powered by Team DUST</div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+/* ------------------------------
+  Slots mit Seed-Event (DUSTTEST)
+  - deterministisches RNG (LCG)
+  - DUSTTEST tauscht Symbole:
+      Walze0 -> nur "R"
+      Walze1 -> nur "1"
+      Walze2 -> nur "7"
+  - keine sichtbaren Symbol-Switches beim Stop
+  - WebAudio: spin hum, tick, stop, win melody
+  -------------------------------*/
+
+const DEFAULT_SYMBOLS = ["🍒","⭐","🔔","💎","🍀","🍇","🎲","🔷"];
+const REEL_COUNT = 3;
+const STRIP_LEN = 56; // genug Länge für flüssigen Spin
+const SYMBOL_H = 140;
+let credits = 500;
+let spinning = false;
+let currentSeed = null;
+let rng = Math.random; // will be replaced by seeded RNG when seed set
+let audioCtx = null;
+
+const strips = [...Array(REEL_COUNT).keys()].map(i => document.getElementById(`strip-${i}`));
+const spinBtn = document.getElementById('spinBtn');
+const applySeedBtn = document.getElementById('applySeedBtn');
+const clearSeedBtn = document.getElementById('clearSeedBtn');
+const seedInput = document.getElementById('seedInput');
+const creditsEl = document.getElementById('credits');
+const lastWinEl = document.getElementById('lastWin');
+const statusText = document.getElementById('statusText');
+const logEl = document.getElementById('log');
+const betInput = document.getElementById('bet');
+
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  logEl.innerHTML = `<div>[${t}] ${msg}</div>` + logEl.innerHTML;
+}
+
+/* ---------- Seeded RNG (LCG) ---------- */
+function seedToInt(seedStr){
+  // simple hash to integer
+  let h = 2166136261 >>> 0;
+  for(let i=0;i<seedStr.length;i++){
+    h ^= seedStr.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+function createLCG(seedStr){
+  const seed = seedToInt(seedStr) || 1;
+  // parameters from Numerical Recipes
+  let state = seed;
+  return function(){
+    state = (1664525 * state + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+/* ---------- Audio helpers ---------- */
+function ensureAudio(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playClick(){
+  ensureAudio();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'square'; o.frequency.value = 900;
+  g.gain.value = 0.0001;
+  o.connect(g); g.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.07, now+0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, now+0.09);
+  o.start(now); o.stop(now+0.1);
+}
+function playWinMelody(big=false){
+  ensureAudio();
+  const now = audioCtx.currentTime;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'sine';
+  o.frequency.value = big ? 880 : 660;
+  g.gain.value = 0.0001;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(now);
+  g.gain.exponentialRampToValueAtTime(0.08, now+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + (big ? 0.9 : 0.5));
+  o.stop(now + (big ? 0.95 : 0.55));
+}
+function createSpinTone(){
+  ensureAudio();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  const f = audioCtx.createBiquadFilter();
+  o.type='sawtooth'; o.frequency.value = 120;
+  f.type='lowpass'; f.frequency.value = 900;
+  g.gain.value = 0.0006;
+  o.connect(f); f.connect(g); g.connect(audioCtx.destination);
+  o.start();
+  return {osc:o, gain:g, filter:f};
+}
+function stopSpinTone(node){
+  if(!node) return;
+  const now = audioCtx.currentTime;
+  node.gain.gain.exponentialRampToValueAtTime(0.0001, now+0.12);
+  node.osc.stop(now+0.14);
+}
+
+/* ---------- Build strips based on current seed / event ---------- */
+function isEventSeed(seed){
+  if(!seed) return false;
+  return seed.trim().toUpperCase() === 'DUSTTEST';
+}
+function buildStrips_fromRNG(){
+  // normal strips (from rng)
+  for(let r=0;r<REEL_COUNT;r++){
+    const strip = strips[r];
+    strip.innerHTML = '';
+    for(let i=0;i<STRIP_LEN;i++){
+      const d = document.createElement('div');
+      d.className = 'symbol';
+      // choose from default symbols using rng
+      const idx = Math.floor(rng() * DEFAULT_SYMBOLS.length);
+      d.textContent = DEFAULT_SYMBOLS[idx];
+      strip.appendChild(d);
+    }
+    // append visible padding
+    for(let p=0;p<3;p++){
+      const d = document.createElement('div');
+      d.className = 'symbol';
+      d.textContent = DEFAULT_SYMBOLS[Math.floor(rng()*DEFAULT_SYMBOLS.length)];
+      strip.appendChild(d);
+    }
+    strip.style.transition = 'none';
+    strip.style.transform = 'translateY(0px)';
+  }
+}
+
+function buildStrips_forEvent(){
+  // DUSTTEST: reel0 -> 'R', reel1 -> '1', reel2 -> '7'
+  const sets = [['R'], ['1'], ['7']];
+  for(let r=0;r<REEL_COUNT;r++){
+    const strip = strips[r];
+    strip.innerHTML = '';
+    const choices = sets[r];
+    for(let i=0;i<STRIP_LEN;i++){
+      const d = document.createElement('div');
+      d.className = 'symbol';
+      // choose from choices deterministically (we can still use rng for variety)
+      d.textContent = choices[i % choices.length];
+      strip.appendChild(d);
+    }
+    for(let p=0;p<3;p++){ const d=document.createElement('div'); d.className='symbol'; d.textContent=choices[(STRIP_LEN+p)%choices.length]; strip.appendChild(d); }
+    strip.style.transition='none'; strip.style.transform='translateY(0px)';
+  }
+}
+
+function buildStrips(){
+  if(isEventSeed(currentSeed)) buildStrips_fromRNG();
+  else buildStrips_fromRNG();
+}
+
+/* ---------- Payout logic ---------- */
+function determinePayout(resultSymbols, bet){
+  const [a,b,c] = resultSymbols;
+  if(a===b && b===c) return {win: bet*12, type:'JACKPOT'};
+  if(a===b || a===c || b===c) return {win: Math.round(bet*3), type:'2 gleiche'};
+  return {win:0, type:'Niete'};
+}
+
+/* ---------- Spin logic ---------- */
+async function spin(){
+  if(spinning) return;
+  spinning = true;
+  spinBtn.disabled = true;
+  applySeedBtn.disabled = true;
+  clearSeedBtn.disabled = true;
+  betInput.disabled = true;
+
+  const bet = Math.max(1, Math.floor(Number(betInput.value) || 1));
+  if(bet > credits){
+    alert('Nicht genug Guthaben.');
+    resetAfterSpin(); return;
+  }
+  credits -= bet; updateUI();
+  log(`Einsatz ${bet} gesetzt.`);
+
+  // prepare spin audio
+  const spinTone = createSpinTone();
+  let tickTimer = setInterval(()=> playClick(), 90);
+
+  // choose target positions using rng (deterministic if seed set)
+  const chosenIndices = [];
+  for(let r=0;r<REEL_COUNT;r++){
+    const base = Math.floor(rng() * 8) + 10 + r*6; // ensures some cycles
+    const offset = Math.floor(rng() * 8); // position inside symbol choices
+    chosenIndices.push(base + offset);
+  }
+
+  const finalSymbols = new Array(REEL_COUNT);
+  const promises = strips.map((strip, i) => new Promise(resolve => {
+    const targetIndex = chosenIndices[i];
+    const translateY = -(targetIndex * SYMBOL_H);
+    const duration = 1100 + i*420 + Math.floor(rng()*240);
+
+    // apply transition
+    strip.style.transition = `transform ${duration}ms cubic-bezier(.12,.8,.1,1)`;
+    // force frame
+    requestAnimationFrame(()=> {
+      strip.style.transform = `translateY(${translateY}px)`;
+    });
+
+    // when transition ends, compute exact visible symbol and reset strip preserving visible symbols
+    strip.addEventListener('transitionend', function onEnd(){
+      strip.removeEventListener('transitionend', onEnd);
+
+      // compute which element ended up centered: index = targetIndex % actualLength
+      // our strip had STRIP_LEN + 3 padding elements; ensure index within that
+      const actualLen = strip.children.length;
+      const idx = ((targetIndex % actualLen) + actualLen) % actualLen;
+      // the visible middle symbol is at position idx (because we positioned so that that element is at top of viewport offset -> we constructed so middle matches)
+      // To avoid visual switching, reconstruct a new strip whose first items start from the visible middle slot
+      const visibleStart = idx; // use idx as start
+      const newSymbols = [];
+      for(let k=0;k<STRIP_LEN;k++){
+        // pick element content cyclically from old strip starting at visibleStart+k
+        const el = strip.children[(visibleStart + k) % actualLen];
+        newSymbols.push(el.textContent);
+      }
+      // create new DOM with same visible items at top (so transform reset is safe)
+      strip.innerHTML = '';
+      for(const s of newSymbols){
+        const d = document.createElement('div');
+        d.className = 'symbol';
+        d.textContent = s;
+        strip.appendChild(d);
+      }
+      // reset transform
+      strip.style.transition = 'none';
+      strip.style.transform = 'translateY(0px)';
+
+      // middle visible symbol equals newSymbols[0 + 1] if we want the centered to be second (but we are consistent: we show first element at top, center line covers element 2).
+      // To compute final symbol for payout, find the element at visible center:
+      const centerIndexInNew = 1; // because we will consider index 1 as center (0..2 visible)
+      // final symbol berechnen
+      let centerSymbol = newSymbols[centerIndexInNew] || newSymbols[0] || '';
+      finalSymbols[i] = centerSymbol;
+
+      // *** RIGGING: Wenn Seed aktiv ist, Ergebnis manipulieren ***
+      if (isEventSeed(currentSeed)) {
+          if (i === 0) finalSymbols[i] = "R";
+          if (i === 1) finalSymbols[i] = "1";
+          if (i === 2) finalSymbols[i] = "7";
+
+          // und wir überschreiben das sichtbare Symbol in der DOM
+          const centerIndexInNew = 1;
+          strip.children[centerIndexInNew].textContent = finalSymbols[i];
+      }
+
+      // Stop-Sound
+      playClick();
+      resolve();
+
+    });
+  }));
+
+  await Promise.all(promises);
+  clearInterval(tickTimer);
+  stopSpinTone(spinTone);
+
+  // payout
+  const payout = determinePayout(finalSymbols, bet);
+  credits += payout.win;
+  lastWinEl.textContent = payout.win;
+  statusText.textContent = `${payout.type} ${payout.win ? '(+'+payout.win+')' : ''}`;
+  log(`Ergebnis: [${finalSymbols.join(' | ')}] → ${payout.type} (Gewinn ${payout.win})`);
+  if(payout.win >= bet*10) playWinMelody(true);
+  else if(payout.win > 0) playWinMelody(false);
+
+  resetAfterSpin();
+}
+
+function resetAfterSpin(){
+  spinning = false;
+  spinBtn.disabled = false;
+  applySeedBtn.disabled = false;
+  clearSeedBtn.disabled = false;
+  betInput.disabled = false;
+}
+
+function updateUI(){
+  creditsEl.textContent = credits;
+}
+
+/* ---------- Seed handling ---------- */
+applySeedBtn.addEventListener('click', ()=>{
+  const val = (seedInput.value || '').trim();
+  if(!val){
+    currentSeed = null; rng = Math.random; statusText.textContent = 'Kein Seed gesetzt.'; log('Seed entfernt. Normales RNG aktiv.'); buildStrips(); return;
+  }
+  currentSeed = val;
+  rng = createLCG(val);
+  statusText.textContent = `Seed gesetzt: ${val}`;
+  log(`Seed "${val}" gesetzt.`);
+  // If event seed, apply event strips; else normal strips from seeded RNG
+  buildStrips();
+});
+
+clearSeedBtn.addEventListener('click', ()=>{
+  seedInput.value = '';
+  currentSeed = null; rng = Math.random; statusText.textContent = 'Seed gelöscht.'; log('Seed gelöscht.'); buildStrips();
+});
+
+/* ---------- Setup initial strips and handlers ---------- */
+function initialSetup(){
+  // if there's an initial seed in the field, apply it
+  const s = (seedInput.value || '').trim();
+  if(s){ currentSeed = s; rng = createLCG(s); statusText.textContent = `Seed gesetzt: ${s}`; }
+  buildStrips();
+  updateUI();
+  log('Spiel bereit.');
+}
+spinBtn.addEventListener('click', ()=>{ spin(); });
+document.addEventListener('keydown', (e)=>{ if(e.code==='Space'){ e.preventDefault(); spin(); } });
+
+initialSetup();
+
+</script>
+</body>
+</html>
