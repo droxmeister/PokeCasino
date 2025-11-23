@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Game Corner Slots — Seed & Event</title>
+<title>Team DUST PokeCasino - Let's Go Gambling!</title>
 <style>
   :root{
     --bg:#071029; --panel:#0b1330; --accent:#ffcc00; --muted:#9fb0d0; --text:#eaf3ff;
@@ -15,23 +15,24 @@
     display:flex;align-items:center;justify-content:center;padding:20px;
   }
   .wrap{width:100%;max-width:1000px;display:grid;grid-template-columns:1fr 340px;gap:18px}
-  .machine{background:rgba(255,255,255,0.02);padding:18px;border-radius:10px}
+  .machine{background:rgba(255,255,255,0.02);padding:18px;border-radius:10px;position:relative}
   .header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .win-line {position: absolute;left: 3%;right: 24%;top: 43%;height: 2px;background: #ff3b3b;z-index:1;box-shadow: 0 0 6px #ff3b3b;}
   .logo{font-weight:900;color:var(--accent);font-size:20px}
   .slot-frame{display:flex;gap:14px;padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(0,0,0,0.18),transparent)}
-  .reel{width:140px;height:420px;border-radius:8px;overflow:hidden;position:relative;background:rgba(0,0,0,0.12);border:4px solid rgba(0,0,0,0.6);display:flex;justify-content:center}
+  .reel{width:140px;height:420px;border-radius:8px;overflow:hidden;position:relative;background:rgba(0,0,0,0.12);border:4px solid rgba(0,0,0,0.6);display:flex;justify-content:center;z-index: 2}
   .viewport{position:relative;width:100%;height:100%}
-  .strip{position:absolute;left:20%;top:0;display:flex;flex-direction:column;will-change:transform;transition: transform 1s cubic-bezier(.12,.8,.1,1)}
+  .strip{position:absolute;left:30%;top:0;display:flex;flex-direction:column;will-change:transform;transition: transform 1s cubic-bezier(.12,.8,.1,1);z-index: 2}
   .symbol{height:140px;line-height:140px;display:flex;align-items:center;justify-content:center;font-size:58px;font-weight:700;text-shadow:0 3px 0 rgba(0,0,0,0.6);user-select:none;}
   .center-line{position:absolute;left:0;right:0;top:140px;height:140px;border-top:2px dashed rgba(255,255,255,0.06);border-bottom:2px dashed rgba(255,255,255,0.06);pointer-events:none}
   .controls{display:flex;gap:10px;align-items:center;margin-top:12px}
+  .symbol-img {width: 64px;height: 64px;object-fit: contain;pointer-events: none;}
   input[type=text], input[type=number]{padding:8px;border-radius:8px;border:0;background:#061224;color:var(--text)}
   button{padding:10px 14px;border-radius:8px;border:0;background:linear-gradient(180deg,#ff6fb3,#d24a90);color:white;font-weight:800;cursor:pointer}
   button.secondary{background:linear-gradient(180deg,#4cc0ff,#2aa6ea)}
   .panel{padding:12px;border-radius:8px;background:rgba(0,0,0,0.16);margin-bottom:12px}
   .big{font-weight:800;font-size:28px;color:var(--accent);text-align:center}
   .muted{color:var(--muted);font-size:13px}
-  .log{height:160px;overflow:auto;font-size:13px;color:var(--muted);padding:8px;border-radius:8px;background:rgba(255,255,255,0.02)}
   @media (max-width:920px){.wrap{grid-template-columns:1fr}.reel{width:120px;height:360px}.symbol{font-size:46px;height:120px}}
 </style>
 </head>
@@ -39,8 +40,8 @@
   <div class="wrap">
     <div class="machine" role="application" aria-label="Slots">
       <div class="header">
-        <div class="logo">GAME CORNER</div>
-        <div class="muted">Seed Events • DUST</div>
+        <div class="logo">DUST POKECASINO</div>
+        <div class="muted">Let's Go Gambling</div>
       </div>
 
       <div class="slot-frame" id="slotFrame">
@@ -55,10 +56,12 @@
         </div>
       </div>
 
+      <div class="win-line"></div>
+
       <div class="controls" style="margin-top:14px">
         <button id="spinBtn">SPIN</button>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-          <label class="muted">Einsatz</label>
+          <label class="muted">Bet</label>
           <input id="bet" type="number" value="10" min="1" max="1000">
         </div>
       </div>
@@ -66,15 +69,15 @@
       <div class="controls" style="margin-top:10px">
         <div style="display:flex;gap:8px;align-items:center">
           <input id="seedInput" type="text" placeholder="Seed">
-          <button class="secondary" id="applySeedBtn">Seed setzen</button>
-          <button id="clearSeedBtn">Seed löschen</button>
+          <button class="secondary" id="applySeedBtn">Set Seed</button>
+          <button id="clearSeedBtn">Delete Seed</button>
         </div>
         <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
           <div class="panel" style="width:140px">
-            <div class="muted">Guthaben</div><div class="big" id="credits">500</div>
+            <div class="muted">Credits</div><div class="big" id="credits">500</div>
           </div>
           <div class="panel" style="width:120px">
-            <div class="muted">Letzter</div><div class="big" id="lastWin">—</div>
+            <div class="muted">Last Win</div><div class="big" id="lastWin">—</div>
           </div>
         </div>
       </div>
@@ -83,12 +86,7 @@
     <aside>
       <div class="panel">
         <div style="font-weight:800">Status</div>
-        <div id="statusText" style="margin-top:8px" class="muted">Kein Seed gesetzt.</div>
-      </div>
-
-      <div class="panel">
-        <div style="font-weight:800;margin-bottom:6px">Spiel-Log</div>
-        <div class="log" id="log"></div>
+        <div id="statusText" style="margin-top:8px" class="muted">No seed set.</div>
       </div>
 
       <div class="panel">
@@ -109,7 +107,8 @@
   - WebAudio: spin hum, tick, stop, win melody
   -------------------------------*/
 
-const DEFAULT_SYMBOLS = ["🍒","⭐","🔔","💎","🍀","🍇","🎲","🔷"];
+const DEFAULT_SYMBOLS = ["assets/symbols/GameCorner_7.png","assets/symbols/GameCorner_Cherry.png","assets/symbols/GameCorner_Magnemite.png","assets/symbols/GameCorner_Pikachu.png","assets/symbols/GameCorner_Psyduck.png","assets/symbols/GameCorner_R.png","assets/symbols/GameCorner_Shellder.png","assets/symbols/GameCorner_Slowpoke.png", "assets/symbols/GameCorner_Staryu.png", "assets/symbols/GameCorner_Voltorb.png"];
+const RIGGED = ["assets/symbols/rigged-1.png","assets/symbols/rigged-2.png","assets/symbols/rigged-3.png"];
 const REEL_COUNT = 3;
 const STRIP_LEN = 56; // genug Länge für flüssigen Spin
 const SYMBOL_H = 140;
@@ -129,11 +128,6 @@ const lastWinEl = document.getElementById('lastWin');
 const statusText = document.getElementById('statusText');
 const logEl = document.getElementById('log');
 const betInput = document.getElementById('bet');
-
-function log(msg){
-  const t = new Date().toLocaleTimeString();
-  logEl.innerHTML = `<div>[${t}] ${msg}</div>` + logEl.innerHTML;
-}
 
 /* ---------- Seeded RNG (LCG) ---------- */
 function seedToInt(seedStr){
@@ -220,14 +214,22 @@ function buildStrips_fromRNG(){
       d.className = 'symbol';
       // choose from default symbols using rng
       const idx = Math.floor(rng() * DEFAULT_SYMBOLS.length);
-      d.textContent = DEFAULT_SYMBOLS[idx];
+      //d.textContent = DEFAULT_SYMBOLS[idx];
+      const img = document.createElement('img');
+      img.src = DEFAULT_SYMBOLS[idx];
+      img.className = "symbol-img";
+      d.appendChild(img);
       strip.appendChild(d);
     }
     // append visible padding
     for(let p=0;p<3;p++){
       const d = document.createElement('div');
       d.className = 'symbol';
-      d.textContent = DEFAULT_SYMBOLS[Math.floor(rng()*DEFAULT_SYMBOLS.length)];
+      const randomIndex = Math.floor(rng()*DEFAULT_SYMBOLS.length);
+      const img = document.createElement('img');
+      img.src = DEFAULT_SYMBOLS[randomIndex];
+      img.className = "symbol-img";
+      d.appendChild(img);
       strip.appendChild(d);
     }
     strip.style.transition = 'none';
@@ -263,8 +265,8 @@ function buildStrips(){
 function determinePayout(resultSymbols, bet){
   const [a,b,c] = resultSymbols;
   if(a===b && b===c) return {win: bet*12, type:'JACKPOT'};
-  if(a===b || a===c || b===c) return {win: Math.round(bet*3), type:'2 gleiche'};
-  return {win:0, type:'Niete'};
+  if(a===b || a===c || b===c) return {win: Math.round(bet*3), type:'2 Symbols'};
+  return {win:0, type:'Loss'};
 }
 
 /* ---------- Spin logic ---------- */
@@ -278,11 +280,10 @@ async function spin(){
 
   const bet = Math.max(1, Math.floor(Number(betInput.value) || 1));
   if(bet > credits){
-    alert('Nicht genug Guthaben.');
+    alert('Not enough credits.');
     resetAfterSpin(); return;
   }
   credits -= bet; updateUI();
-  log(`Einsatz ${bet} gesetzt.`);
 
   // prepare spin audio
   const spinTone = createSpinTone();
@@ -324,16 +325,31 @@ async function spin(){
       for(let k=0;k<STRIP_LEN;k++){
         // pick element content cyclically from old strip starting at visibleStart+k
         const el = strip.children[(visibleStart + k) % actualLen];
-        newSymbols.push(el.textContent);
+        // PNG-Unterstützung: IMG src extrahieren
+        const imgEl = el.querySelector("img");
+        if (imgEl) newSymbols.push(imgEl.src);
+        else newSymbols.push(el.textContent);  // fallback
+
       }
       // create new DOM with same visible items at top (so transform reset is safe)
       strip.innerHTML = '';
       for(const s of newSymbols){
-        const d = document.createElement('div');
-        d.className = 'symbol';
-        d.textContent = s;
-        strip.appendChild(d);
+      const d = document.createElement('div');
+      d.className = 'symbol';
+
+      // Wenn s ein PNG-Pfad ist → als IMG einfügen
+      if (s.endsWith(".png")) {
+          const img = document.createElement("img");
+          img.src = s;
+          img.className = "symbol-img";
+          d.appendChild(img);
+      } else {
+          d.textContent = s;
       }
+
+      strip.appendChild(d);
+      }
+
       // reset transform
       strip.style.transition = 'none';
       strip.style.transform = 'translateY(0px)';
@@ -346,15 +362,17 @@ async function spin(){
       finalSymbols[i] = centerSymbol;
 
       // *** RIGGING: Wenn Seed aktiv ist, Ergebnis manipulieren ***
+      // *** RIGGING: Wenn Seed aktiv ist, Ergebnis manipulieren ***
       if (isEventSeed(currentSeed)) {
-          if (i === 0) finalSymbols[i] = "R";
-          if (i === 1) finalSymbols[i] = "1";
-          if (i === 2) finalSymbols[i] = "7";
+          const centerIndex = 1; // middle symbol
+          finalSymbols[i] = RIGGED[i];
 
-          // und wir überschreiben das sichtbare Symbol in der DOM
-          const centerIndexInNew = 1;
-          strip.children[centerIndexInNew].textContent = finalSymbols[i];
+          const centerEl = strip.children[centerIndex];
+          if (centerEl) {
+              centerEl.innerHTML = `<img src="${RIGGED[i]}" class="symbol-img">`;
+          }
       }
+
 
       // Stop-Sound
       playClick();
@@ -372,7 +390,6 @@ async function spin(){
   credits += payout.win;
   lastWinEl.textContent = payout.win;
   statusText.textContent = `${payout.type} ${payout.win ? '(+'+payout.win+')' : ''}`;
-  log(`Ergebnis: [${finalSymbols.join(' | ')}] → ${payout.type} (Gewinn ${payout.win})`);
   if(payout.win >= bet*10) playWinMelody(true);
   else if(payout.win > 0) playWinMelody(false);
 
@@ -395,29 +412,27 @@ function updateUI(){
 applySeedBtn.addEventListener('click', ()=>{
   const val = (seedInput.value || '').trim();
   if(!val){
-    currentSeed = null; rng = Math.random; statusText.textContent = 'Kein Seed gesetzt.'; log('Seed entfernt. Normales RNG aktiv.'); buildStrips(); return;
+    currentSeed = null; rng = Math.random; statusText.textContent = 'No seed set.'; buildStrips(); return;
   }
   currentSeed = val;
   rng = createLCG(val);
-  statusText.textContent = `Seed gesetzt: ${val}`;
-  log(`Seed "${val}" gesetzt.`);
+  statusText.textContent = `Seed set: ${val}`;
   // If event seed, apply event strips; else normal strips from seeded RNG
   buildStrips();
 });
 
 clearSeedBtn.addEventListener('click', ()=>{
   seedInput.value = '';
-  currentSeed = null; rng = Math.random; statusText.textContent = 'Seed gelöscht.'; log('Seed gelöscht.'); buildStrips();
+  currentSeed = null; rng = Math.random; statusText.textContent = 'Deleted seed.'; buildStrips();
 });
 
 /* ---------- Setup initial strips and handlers ---------- */
 function initialSetup(){
   // if there's an initial seed in the field, apply it
   const s = (seedInput.value || '').trim();
-  if(s){ currentSeed = s; rng = createLCG(s); statusText.textContent = `Seed gesetzt: ${s}`; }
+  if(s){ currentSeed = s; rng = createLCG(s); statusText.textContent = `Set seed: ${s}`; }
   buildStrips();
   updateUI();
-  log('Spiel bereit.');
 }
 spinBtn.addEventListener('click', ()=>{ spin(); });
 document.addEventListener('keydown', (e)=>{ if(e.code==='Space'){ e.preventDefault(); spin(); } });
